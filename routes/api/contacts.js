@@ -10,24 +10,35 @@ const {
 } = require("../../models/contacts");
 
 const Joi = require("joi");
-const validator = require("express-joi-validation").createValidator({});
 
-const querySchema = Joi.object({
-  name: Joi.string().required(),
+const schemaAdd = Joi.object({
+  name: Joi.string().min(3).max(30).required(),
   email: Joi.string()
-    .email({ minDomainSegments: 2, tlds: { allow: ["com", "net"] } })
+    .email({
+      minDomainSegments: 2,
+    })
     .required(),
-  phone: Joi.number().required(),
+  phone: Joi.number().integer().required(),
+  favorite: Joi.bool(),
 });
+
+const validateBody = (schema) => {
+  return (req, res, next) => {
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: "missing required name field" });
+    }
+    next();
+  };
+};
 
 router.get("/", listContacts);
 
 router.get("/:contactId", getContactById);
-
-router.post("/", validator.query(querySchema), addContact);
+router.post("/", validateBody(schemaAdd), addContact);
 
 router.delete("/:contactId", removeContact);
 
-router.put("/:contactId", validator.query(querySchema), updateContact);
+router.put("/:contactId", validateBody(schemaAdd), updateContact);
 
 module.exports = router;

@@ -36,9 +36,6 @@ const getContactById = async (req, res) => {
 const addContact = async (req, res) => {
   try {
     const { name, email, phone } = req.body;
-    if (!name || !email || !phone) {
-      return res.status(400).json({ message: "missing required name field" });
-    }
     const contacts = await getContacts();
     const contactsJson = JSON.parse(contacts);
     const newContact = {
@@ -76,9 +73,6 @@ const updateContact = async (req, res) => {
   try {
     const { contactId } = req.params;
     const { name, email, phone } = req.body;
-    if (!req.body) {
-      return res.status(400).json({ message: "missing fields" });
-    }
     const contacts = await getContacts();
     const contactsJson = JSON.parse(contacts);
     const [contact] = contactsJson.filter(
@@ -91,7 +85,6 @@ const updateContact = async (req, res) => {
     contact.email = email;
     contact.phone = phone;
     await fs.writeFile(contactsPath, JSON.stringify(contactsJson));
-
     res.status(200).send(contact);
   } catch (error) {
     console.log(error);
