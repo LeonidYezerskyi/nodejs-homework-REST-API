@@ -27,6 +27,23 @@ const schemaAdd = Joi.object(
   { allowUnknown: false }
 );
 
+const schemaUpdateStatus = Joi.object(
+  {
+    favorite: Joi.bool().required(),
+  },
+  { allowUnknown: false }
+);
+
+const validateBodyStatus = (schema) => {
+  return (req, res, next) => {
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: "missing field favorite" });
+    }
+    next();
+  };
+};
+
 const validateBody = (schema) => {
   return (req, res, next) => {
     const { error } = schema.validate(req.body);
@@ -44,7 +61,7 @@ router.delete("/:contactId", tryCatch(removeContact));
 router.put("/:contactId", validateBody(schemaAdd), tryCatch(updateContact));
 router.patch(
   "/:contactId/favorite",
-  validateBody(schemaAdd),
+  validateBodyStatus(schemaUpdateStatus),
   tryCatch(updateStatusContact)
 );
 

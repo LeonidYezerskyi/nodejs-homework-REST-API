@@ -45,13 +45,12 @@ const updateContact = async (req, res) => {
 
 const updateStatusContact = async (req, res) => {
   const { contactId } = req.params;
-  const { favorite } = req.body;
-  if (!favorite) {
-    return res.status(404).json({ message: "Not found" });
-  }
-  const updetedStatus = await Contact.findByIdAndUpdate(contactId, favorite, {
+  const updetedStatus = await Contact.findByIdAndUpdate(contactId, req.body, {
     new: true,
   });
+  if (!updetedStatus) {
+    return res.status(404).json({ message: "Not found" });
+  }
   res.status(200).send(updetedStatus);
 };
 
