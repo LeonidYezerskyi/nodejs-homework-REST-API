@@ -1,6 +1,6 @@
 const express = require("express");
 
-const router = express.Router();
+const contactsRouter = express.Router();
 const {
   listContacts,
   getContactById,
@@ -8,7 +8,7 @@ const {
   addContact,
   updateContact,
   updateStatusContact,
-} = require("../../models/contacts");
+} = require("../../controllers/contacts.controller");
 
 const Joi = require("joi");
 const tryCatch = require("../../utils/try-catch.util");
@@ -27,6 +27,16 @@ const schemaAdd = Joi.object(
   { allowUnknown: false }
 );
 
+const validateBody = (schema) => {
+  return (req, res, next) => {
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: "missing required name field" });
+    }
+    next();
+  };
+};
+
 const schemaUpdateStatus = Joi.object(
   {
     favorite: Joi.bool().required(),
@@ -44,25 +54,19 @@ const validateBodyStatus = (schema) => {
   };
 };
 
-const validateBody = (schema) => {
-  return (req, res, next) => {
-    const { error } = schema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ message: "missing required name field" });
-    }
-    next();
-  };
-};
-
-router.get("/", tryCatch(listContacts));
-router.get("/:contactId", tryCatch(getContactById));
-router.post("/", validateBody(schemaAdd), tryCatch(addContact));
-router.delete("/:contactId", tryCatch(removeContact));
-router.put("/:contactId", validateBody(schemaAdd), tryCatch(updateContact));
-router.patch(
+contactsRouter.get("/", tryCatch(listContacts));
+contactsRouter.get("/:contactId", tryCatch(getContactById));
+contactsRouter.post("/", validateBody(schemaAdd), tryCatch(addContact));
+contactsRouter.delete("/:contactId", tryCatch(removeContact));
+contactsRouter.put(
+  "/:contactId",
+  validateBody(schemaAdd),
+  tryCatch(updateContact)
+);
+contactsRouter.patch(
   "/:contactId/favorite",
   validateBodyStatus(schemaUpdateStatus),
   tryCatch(updateStatusContact)
 );
 
-module.exports = router;
+module.exports = contactsRouter;
