@@ -6,6 +6,7 @@ const {
   logout,
   getUserByToken,
   isAuthorized,
+  updateUserAvatar,
 } = require("../../controllers/users.controller");
 const usersRouter = express.Router();
 const tryCatch = require("../../utils/try-catch.util");
@@ -36,5 +37,6 @@ usersRouter.post("/register", validateBody(schemaAddUser), tryCatch(signUp));
 usersRouter.post("/login", validateBody(schemaAddUser), tryCatch(signIn));
 usersRouter.post("/logout", isAuthorized, tryCatch(logout));
 usersRouter.get("/current", isAuthorized, tryCatch(getUserByToken));
+usersRouter.patch("/avatars", isAuthorized, tryCatch(updateUserAvatar));
 
 module.exports = usersRouter;

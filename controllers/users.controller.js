@@ -1,4 +1,5 @@
 const User = require("../models/user.model");
+const gravatar = require("gravatar");
 const { hashPassword, comparePasswords } = require("../utils/hash.util");
 const { jwtSign, jwtVerify } = require("../utils/jwt.util");
 
@@ -33,7 +34,15 @@ const signUp = async (req, res) => {
   ).select("-password");
 
   res.status(201).send({
-    user: { email: updatedUser.email, subscription: updatedUser.subscription },
+    user: {
+      email: updatedUser.email,
+      subscription: updatedUser.subscription,
+      avatarURL: gravatar.url(
+        updatedUser.email,
+        { s: "120", r: "x", d: "retro" },
+        true
+      ),
+    },
   });
 };
 
@@ -117,10 +126,13 @@ const isAuthorized = async (req, res, next) => {
   next();
 };
 
+const updateUserAvatar = async (req, res) => {};
+
 module.exports = {
   signUp,
   signIn,
   logout,
   getUserByToken,
+  updateUserAvatar,
   isAuthorized,
 };
