@@ -1,12 +1,15 @@
 const express = require("express");
 const Joi = require("joi");
+const multer = require("multer");
+const upload = multer();
 const {
   signUp,
   signIn,
   logout,
   getUserByToken,
   isAuthorized,
-  updateUserAvatar,
+  editAvatar,
+  updateAvatar,
 } = require("../../controllers/users.controller");
 const usersRouter = express.Router();
 const tryCatch = require("../../utils/try-catch.util");
@@ -37,6 +40,17 @@ usersRouter.post("/register", validateBody(schemaAddUser), tryCatch(signUp));
 usersRouter.post("/login", validateBody(schemaAddUser), tryCatch(signIn));
 usersRouter.post("/logout", isAuthorized, tryCatch(logout));
 usersRouter.get("/current", isAuthorized, tryCatch(getUserByToken));
-usersRouter.patch("/avatars", isAuthorized, tryCatch(updateUserAvatar));
+usersRouter.patch(
+  "/avatars",
+  isAuthorized,
+  upload.single("avatar"),
+  editAvatar,
+  async (req, res) => {
+    const user = await updateAvatar(req.user._id, req.file.path);
+    return res.status(200).send({
+      avatarURL: user.avatarURL,
+    });
+  }
+);
 
 module.exports = usersRouter;

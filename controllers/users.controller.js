@@ -1,5 +1,8 @@
 const User = require("../models/user.model");
+
 const gravatar = require("gravatar");
+const fs = require("fs/promises");
+const Jimp = require("jimp");
 const { hashPassword, comparePasswords } = require("../utils/hash.util");
 const { jwtSign, jwtVerify } = require("../utils/jwt.util");
 
@@ -126,13 +129,42 @@ const isAuthorized = async (req, res, next) => {
   next();
 };
 
-const updateUserAvatar = async (req, res) => {};
+const editAvatar = async (req, res, next) => {
+  const fileName =
+    req.user._id + Date.now() + "-" + Math.round(Math.random() * 1e9);
+  const fileType = req.file.mimetype.split("/")[1];
+  await fs.writeFile(`./tmp/${fileName}.${fileType}`, req.file.buffer);
+  Jimp.read(`./tmp/${fileName}.${fileType}`)
+    .then((file) => {
+      return file
+        .resize(250, 250)
+        .quality(60)
+        .writeAsync(`./public/avatars/${fileName}.${fileType}`);
+    })
+    .catch((err) => {
+      console.error(err);
+    });
+  req.file.path = `/public/avatars/${fileName}.${fileType}`;
+  await fs.unlink(`./tmp/${fileName}.${fileType}`);
+
+  next();
+};
+
+const updateAvatar = async (_id, avatarURL) => {
+  const user = await User.findByIdAndUpdate(
+    { _id },
+    { avatarURL },
+    { new: true }
+  );
+  return user;
+};
 
 module.exports = {
   signUp,
   signIn,
   logout,
   getUserByToken,
-  updateUserAvatar,
   isAuthorized,
+  editAvatar,
+  updateAvatar,
 };
