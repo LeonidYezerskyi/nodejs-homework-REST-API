@@ -1,15 +1,17 @@
 /* eslint-disable no-undef */
 
 const request = require("supertest");
-// const { describe, expect, test } = require("@jest/globals");
 const app = require("../app");
 require("dotenv").config();
 const mongoose = require("mongoose");
 const { MONGO_URL, PORT } = process.env;
 
-const goodParams = { email: "leonidasswds@gmail.com", password: "12345asaawd" };
+const correctParams = {
+  email: "leonidasswds@gmail.com",
+  password: "12345asaawd",
+};
 
-describe("Test for Login controller", () => {
+describe("Test for SignIn controller", () => {
   let server;
   beforeAll(() => {
     mongoose
@@ -20,30 +22,26 @@ describe("Test for Login controller", () => {
         });
       })
       .catch(() => {
-        console.log("Failed to start server");
+        process.exit(1);
       });
   });
-
   afterAll((done) => {
     mongoose.disconnect(done);
     server.close();
   });
 
-  test("Standard SignIn with valid credentials params, and should be return token, user.subs and user.email", async () => {
+  test("Login with correct params, should return token, user, user.subscription and user.email", async () => {
     const {
       status,
-      body: {
-        data: { user },
-      },
+      body: { token, user = { email, subscription } },
     } = await request(app)
-      .post("/login")
+      .post("/api/users/login")
       .set("Content-type", "application/json")
-      .send(goodParams);
+      .send(correctParams);
 
     expect(status).toBe(200);
-    // expect(typeof token).toBe("string");
+    expect(typeof token).toBe("string");
     expect(typeof user).toBe("object");
-    expect(typeof user.name).toBe("string");
     expect(typeof user.email).toBe("string");
     expect(typeof user.subscription).toBe("string");
   });
