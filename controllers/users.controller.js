@@ -1,10 +1,13 @@
-const User = require("../models/user.model");
-
-const gravatar = require("gravatar");
-const fs = require("fs/promises");
 const Jimp = require("jimp");
+const gravatar = require("gravatar");
+const { v4: uuidv4 } = require("uuid");
+const User = require("../models/user.model");
+const fs = require("fs/promises");
 const { hashPassword, comparePasswords } = require("../utils/hash.util");
 const { jwtSign, jwtVerify } = require("../utils/jwt.util");
+require("dotenv").config();
+const sgMail = require("@sendgrid/mail");
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const signUp = async (req, res) => {
   const { email, password } = req.body;
@@ -19,9 +22,12 @@ const signUp = async (req, res) => {
     });
   }
 
+  const verificationToken = uuidv4();
+
   const newUser = await User.create({
     email,
     password: hashPassword(password),
+    verificationToken,
   });
 
   const updatedUser = await User.findOneAndUpdate(
@@ -35,6 +41,24 @@ const signUp = async (req, res) => {
       new: true,
     }
   ).select("-password");
+
+  const msg = {
+    to: email,
+    from: process.env.SENDGRID_EMAIL,
+    subject: "Verify your email",
+    html: `<a href="${process.env.BASE_URL}/api/v1/users/verify/${newUser.verificationToken}">Verify your email</a>`,
+  };
+
+  sgMail.send(msg).then(
+    (data) => {},
+    (error) => {
+      console.error(error);
+
+      if (error.response) {
+        console.error(error.response.body);
+      }
+    }
+  );
 
   res.status(201).send({
     user: {
@@ -118,6 +142,12 @@ const isAuthorized = async (req, res, next) => {
     _id: decoded._id,
   });
 
+  if (!user.isVerified) {
+    return res.status(401).send({
+      message: "Not authorized",
+    });
+  }
+
   if (!user.token || !user._id) {
     return res.status(401).send({
       message: "Not authorized",
@@ -159,6 +189,61 @@ const updateAvatar = async (_id, avatarURL) => {
   return user;
 };
 
+const verifyUserFromEmail = async (req, res) => {
+  const { verificationToken } = req.params;
+
+  const user = await User.findOne({ verificationToken });
+
+  if (!user) {
+    res.status(404).send({
+      message: "User not found",
+    });
+  }
+
+  await User.findByIdAndUpdate(user._id, {
+    verificationToken: null,
+    verify: true,
+  });
+
+  res.status(200).send({
+    message: "Verification successful",
+  });
+};
+
+const resendEmail = async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user.verificationToken) {
+    res.status(400).send({
+      message: "Verification has already been passed",
+    });
+  }
+
+  const msg = {
+    to: email,
+    from: process.env.SENDGRID_EMAIL,
+    subject: "Verify your email",
+    html: `<a href="${process.env.BASE_URL}/api/v1/users/verify/${user.verificationToken}">Verify your email</a>`,
+  };
+
+  sgMail.send(msg).then(
+    (data) => {},
+    (error) => {
+      console.error(error);
+
+      if (error.response) {
+        console.error(error.response.body);
+      }
+    }
+  );
+
+  res.status(200).json({
+    message: "Verification email sent",
+  });
+};
+
 module.exports = {
   signUp,
   signIn,
@@ -167,4 +252,6 @@ module.exports = {
   isAuthorized,
   editAvatar,
   updateAvatar,
+  verifyUserFromEmail,
+  resendEmail,
 };
